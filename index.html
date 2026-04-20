@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chat — GitHub Pages</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #6c5ce7;
+    --accent2: #a29bfe;
+    --text: #e8e8f0;
+    --text2: #8888a0;
+    --danger: #ff4757;
+    --success: #2ed573;
+    --user-bubble: #6c5ce7;
+    --ai-bubble: #1e1e2e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .header-left {
+    display: flex;    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .header-title h1 {
+    font-size: 16px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent2), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header-title span {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .btn:hover {
+    border-color: var(--accent);
+    background: rgba(108,92,231,0.1);
+  }
+
+  .btn-danger {    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  .btn-danger:hover {
+    background: rgba(255,71,87,0.1);
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text2);
+    flex-wrap: wrap;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text2);
+  }
+
+  .status-dot.green { background: var(--success); box-shadow: 0 0 6px var(--success); }
+  .status-dot.yellow { background: #ffa502; box-shadow: 0 0 6px #ffa502; }
+  .status-dot.red { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+  .repo-link {
+    color: var(--accent2);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .repo-link:hover { color: #fff; }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main {
+    display: flex;
+    flex: 1;    overflow: hidden;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .file-count {
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .file-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .file-item {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s;    color: var(--text2);
+  }
+
+  .file-item:hover { background: var(--surface2); }
+
+  .file-icon {
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-size {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+
+  /* ===== CHAT AREA ===== */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 75%;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .message-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .message.user .message-avatar {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+
+  .message.ai .message-avatar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  .message-bubble {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    word-wrap: break-word;
+  }
+
+  .message.user .message-bubble {
+    background: var(--user-bubble);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message.ai .message-bubble {
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  .message-bubble p { margin-bottom: 8px; }
+  .message-bubble p:last-child { margin-bottom: 0; }
+  .message-bubble code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;    font-size: 13px;
+    font-family: 'Fira Code', monospace;
+  }
+  .message-bubble pre {
+    background: rgba(0,0,0,0.4);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .message-bubble pre code {
+    background: none;
+    padding: 0;
+  }
+  .message-bubble ul, .message-bubble ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .message-bubble li { margin-bottom: 4px; }
+
+  .message-time {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .message.user .message-time { text-align: right; }
+
+  /* ===== WELCOME ===== */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+  }
+
+  .welcome-icon {
+    font-size: 60px;
+    margin-bottom: 20px;
+  }
+
+  .welcome h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent2), #fff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;  }
+
+  .welcome p {
+    color: var(--text2);
+    font-size: 14px;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  /* ===== INPUT AREA ===== */
+  .input-area {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .input-box {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    transition: border-color 0.2s;
+  }
+
+  .input-box:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(108,92,231,0.15);
+  }
+
+  .input-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+  }
+  .input-box input::placeholder { color: var(--text2); }
+
+  .send-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+  }
+
+  .send-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(108,92,231,0.4);
+  }
+
+  .send-btn:active { transform: scale(0.95); }
+
+  .send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .input-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 8px;
+  }
+
+  /* ===== TYPING INDICATOR ===== */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+  }
+
+  .typing-indicator span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text2);
+    animation: bounce 1.4s infinite;  }
+
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+  }
+
+  /* ===== LOADING OVERLAY ===== */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .loader {
+    width: 50px; height: 50px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 20px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  .loading-progress {
+    width: 200px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 12px;    overflow: hidden;
+  }
+
+  .loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .message { max-width: 90%; }
+    .header { padding: 10px 14px; }
+    .messages { padding: 14px; }
+  }
+
+  /* ===== CONFIRM DIALOG ===== */
+  .dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+  }
+
+  .dialog-overlay.hidden { display: none; }
+
+  .dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 380px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .dialog h3 { margin-bottom: 8px; font-size: 18px; }
+  .dialog p { color: var(--text2); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+  .dialog-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .dialog-actions .btn { min-width: 100px; justify-content: center; }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 300;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .source-ref {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--accent2);
+    background: rgba(108,92,231,0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader"></div>
+  <div class="loading-text" id="loadingText">Определение репозитория...</div>
+  <div class="loading-progress">    <div class="loading-progress-bar" id="progressBar" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="dialog-overlay hidden" id="confirmDialog">
+  <div class="dialog">
+    <h3>🗑️ Очистить чат?</h3>
+    <p>Все сообщения будут удалены. Файлы и данные обучения останутся.</p>
+    <div class="dialog-actions">
+      <button class="btn" onclick="closeDialog()">Отмена</button>
+      <button class="btn btn-danger" onclick="confirmClear()">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">🤖</div>
+    <div class="header-title">
+      <h1>AI Knowledge Chat</h1>
+      <span id="headerRepo">Загрузка...</span>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="toggleSidebar()" title="Файлы">
+      📁 <span class="hide-mobile">Файлы</span>
+    </button>
+    <button class="btn" onclick="showClearDialog()" title="Очистить чат">
+      🗑️ <span class="hide-mobile">Очистить</span>
+    </button>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-item">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Подключение...</span>
+  </div>
+  <div class="status-item">
+    📄 Файлов: <strong id="fileCount">0</strong>
+  </div>
+  <div class="status-item">
+    📊 Загружено: <strong id="dataSize">0 KB</strong>
+  </div>  <div class="status-item" id="repoLinkContainer" style="display:none">
+    🔗 <a class="repo-link" id="repoLink" href="#" target="_blank"></a>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      Файлы репозитория
+      <span class="file-count" id="sidebarCount">0</span>
+    </div>
+    <div class="file-list" id="fileList">
+      <div style="padding:20px;text-align:center;color:var(--text2);font-size:12px;">
+        Загрузка файлов...
+      </div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcomeScreen">
+        <div class="welcome-icon">💬</div>
+        <h2>Добро пожаловать!</h2>
+        <p>Загружаю файлы из вашего репозитория. После загрузки вы сможете задавать вопросы по содержимому ваших файлов.</p>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <div class="input-box">
+          <input type="text" id="chatInput" placeholder="Задайте вопрос по вашим файлам..." autocomplete="off" disabled>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+          ➤
+        </button>
+      </div>
+      <div class="input-hint" id="inputHint">Загрузка файлов репозитория...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const EXCLUDED_EXTENSIONS = ['html', 'htm'];
+const API_BASE = 'https://api.github.com';
+
+// ============================================================
+// STATE
+// ============================================================
+let githubUser = '';
+let githubRepo = '';
+let knowledgeBase = [];  // [{path, name, content, type, size}]
+let chatHistory = [];
+let isProcessing = false;
+
+// ============================================================
+// INIT
+// ============================================================
+(async function init() {
+  updateProgress(5, 'Определение репозитория...');
+
+  // Auto-detect from GitHub Pages URL
+  const info = detectRepoFromURL();
+  githubUser = info.user;
+  githubRepo = info.repo;
+
+  if (!githubUser || !githubRepo) {
+    updateProgress(0, '⚠️ Не удалось определить репозиторий');
+    document.getElementById('loadingText').textContent =
+      'Не удалось определить GitHub репозиторий. Убедитесь, что сайт размещён на GitHub Pages.';
+    document.getElementById('statusDot').className = 'status-dot red';
+    document.getElementById('statusText').textContent = 'Ошибка';
+    return;
+  }
+
+  document.getElementById('headerRepo').textContent = `${githubUser}/${githubRepo}`;
+  document.getElementById('repoLink').href = `https://github.com/${githubUser}/${githubRepo}`;
+  document.getElementById('repoLink').textContent = `${githubUser}/${githubRepo}`;
+  document.getElementById('repoLinkContainer').style.display = 'flex';
+
+  updateProgress(20, `Репозиторий: ${githubUser}/${githubRepo}`);
+
+  try {
+    // Fetch all files
+    await loadAllFiles();
+
+    updateProgress(90, `Загружено ${knowledgeBase.length} файлов, парсинг...`);
+
+    // Build knowledge base
+    await buildKnowledgeBase();
+
+    updateProgress(100, 'Готово!');
+    // Ready
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      document.getElementById('statusDot').className = 'status-dot green';
+      document.getElementById('statusText').textContent = 'Готов к работе';
+      document.getElementById('chatInput').disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      document.getElementById('inputHint').textContent =
+        `На основе ${knowledgeBase.length} файлов из ${githubUser}/${githubRepo}`;
+
+      showToast(`✅ Загружено ${knowledgeBase.length} файлов`);
+    }, 500);
+
+  } catch (err) {
+    console.error(err);
+    updateProgress(0, '❌ Ошибка загрузки');
+    document.getElementById('loadingText').textContent = `Ошибка: ${err.message}`;
+    document.getElementById('statusDot').className = 'status-dot red';
+    document.getElementById('statusText').textContent = 'Ошибка загрузки';
+  }
+})();
+
+// ============================================================
+// REPO DETECTION
+// ============================================================
+function detectRepoFromURL() {
+  const hostname = window.location.hostname;
+  const pathname = window.location.pathname;
+
+  // Pattern: username.github.io/repo-name
+  const ghPagesMatch = hostname.match(/^(.+)\.github\.io$/);
+
+  if (ghPagesMatch) {
+    const user = ghPagesMatch[1];
+    // repo is the first path segment
+    const pathParts = pathname.split('/').filter(Boolean);
+    const repo = pathParts[0] || user + '.github.io';
+    return { user, repo };
+  }
+
+  // Pattern: pages subdomain
+  const pagesMatch = hostname.match(/^(.+)\.pages\.github\.com$/);
+  if (pagesMatch) {
+    return { user: pagesMatch[1], repo: pagesMatch[1] };
+  }
+
+  // Fallback: try to get from path for github.io
+  if (hostname === 'github.io' || hostname.endsWith('.github.io')) {
+    const parts = pathname.split('/').filter(Boolean);    if (parts.length >= 2) {
+      return { user: parts[0], repo: parts[1] };
+    }
+  }
+
+  // Last resort: try to extract from any github-related hostname
+  return { user: '', repo: '' };
+}
+
+// ============================================================
+// FILE LOADING
+// ============================================================
+async function loadAllFiles() {
+  const tree = await fetchWithRateLimit(`${API_BASE}/repos/${githubUser}/${githubRepo}/git/trees/main?recursive=1`);
+
+  // If main branch doesn't exist, try master
+  if (!tree || tree.message) {
+    const tree2 = await fetchWithRateLimit(`${API_BASE}/repos/${githubUser}/${githubRepo}/git/trees/master?recursive=1`);
+    if (tree2 && !tree2.message) {
+      return processTree(tree2);
+    }
+    throw new Error('Не удалось получить список файлов (нет веток main/master)');
+  }
+
+  return processTree(tree);
+}
+
+function processTree(tree) {
+  const blobs = tree.tree.filter(item =>
+    item.type === 'blob' &&
+    !isExcluded(item.path)
+  );
+
+  const fileList = document.getElementById('fileList');
+  fileList.innerHTML = '';
+
+  let loadedCount = 0;
+  let totalSize = 0;
+
+  blobs.forEach((item, index) => {
+    const ext = getExtension(item.path);
+    const icon = getFileIcon(ext);
+    const size = item.size || 0;
+    totalSize += size;
+
+    // Add to sidebar
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `
+      <span class="file-icon">${icon}</span>      <span class="file-name" title="${item.path}">${item.path.split('/').pop()}</span>
+      <span class="file-size">${formatSize(size)}</span>
+    `;
+    fileList.appendChild(div);
+
+    // Load file content
+    loadFileContent(item.path, ext, size, index, blobs.length).then(() => {
+      loadedCount++;
+      document.getElementById('fileCount').textContent = loadedCount;
+      document.getElementById('sidebarCount').textContent = loadedCount;
+      document.getElementById('dataSize').textContent = formatSize(totalSize);
+    });
+  });
+
+  document.getElementById('fileCount').textContent = blobs.length;
+  document.getElementById('sidebarCount').textContent = blobs.length;
+  document.getElementById('dataSize').textContent = formatSize(totalSize);
+}
+
+async function loadFileContent(path, ext, size, index, total) {
+  try {
+    // For PDFs and binary files, we need raw content
+    const isBinary = ['pdf', 'docx', 'xlsx', 'pptx', 'zip', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'webp', 'ico'].includes(ext);
+
+    if (isBinary && ext === 'pdf') {
+      const rawUrl = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/main/${path}`;
+      let response;
+      try {
+        response = await fetch(rawUrl);
+      } catch {
+        const rawUrl2 = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/master/${path}`;
+        response = await fetch(rawUrl2);
+      }
+
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        const text = await extractPDFText(arrayBuffer);
+        knowledgeBase.push({
+          path,
+          name: path.split('/').pop(),
+          content: text,
+          type: 'pdf',
+          size
+        });
+      }
+    } else if (isBinary) {
+      // Skip other binary files — can't parse them client-side
+      knowledgeBase.push({
+        path,
+        name: path.split('/').pop(),        content: `[Бинарный файл: ${ext}]`,
+        type: ext,
+        size,
+        binary: true
+      });
+    } else {
+      // Text-based files
+      const rawUrl = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/main/${path}`;
+      let response;
+      try {
+        response = await fetch(rawUrl);
+      } catch {
+        const rawUrl2 = `https://raw.githubusercontent.com/${githubUser}/${githubRepo}/master/${path}`;
+        response = await fetch(rawUrl2);
+      }
+
+      if (response.ok) {
+        const text = await response.text();
+        knowledgeBase.push({
+          path,
+          name: path.split('/').pop(),
+          content: text,
+          type: ext,
+          size
+        });
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to load ${path}:`, err);
+  }
+}
+
+// ============================================================
+// PDF EXTRACTION
+// ============================================================
+async function extractPDFText(arrayBuffer) {
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  } catch (err) {
+    return `[Ошибка чтения PDF: ${err.message}]`;
+  }
+}
+// ============================================================
+// KNOWLEDGE BASE & SEARCH
+// ============================================================
+async function buildKnowledgeBase() {
+  // Knowledge base is already built during loading
+  // Nothing extra needed
+}
+
+function searchKnowledge(query) {
+  const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+  if (terms.length === 0) return [];
+
+  const scored = knowledgeBase.map(item => {
+    if (item.binary) return { ...item, score: 0 };
+    const content = item.content.toLowerCase();
+    let score = 0;
+
+    terms.forEach(term => {
+      // Exact match
+      const exactCount = (content.match(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+      score += exactCount * 10;
+
+      // Partial match
+      const partialCount = (content.match(new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length;
+      score += partialCount * 3;
+
+      // Filename match (higher weight)
+      const name = item.name.toLowerCase();
+      if (name.includes(term)) score += 20;
+    });
+
+    return { ...item, score };
+  });
+
+  return scored
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+function generateAnswer(query, results) {
+  if (results.length === 0) {
+    return `К сожалению, я не нашёл информации по вашему запросу «${query}» в загруженных файлах.\n\nПопробуйте переформулировать вопрос или использовать другие ключевые слова.`;
+  }
+
+  let answer = '';
+  const mainResult = results[0];
+
+  // Try to find relevant snippets
+  const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);  let snippets = [];
+
+  results.forEach(result => {
+    if (result.binary) return;
+    const content = result.content;
+    const sentences = content.split(/[.!?]\s+/).filter(s => s.trim().length > 20);
+
+    sentences.forEach(sentence => {
+      let sentenceScore = 0;
+      terms.forEach(term => {
+        if (sentence.toLowerCase().includes(term)) sentenceScore += 1;
+      });
+      if (sentenceScore > 0) {
+        snippets.push({ text: sentence.trim(), score: sentenceScore, source: result.name });
+      }
+    });
+  });
+
+  snippets.sort((a, b) => b.score - a.score);
+  snippets = snippets.slice(0, 6);
+
+  if (snippets.length === 0) {
+    // Fallback: show first relevant file content
+    answer += `📄 **${mainResult.name}**\n\n`;
+    const preview = mainResult.content.substring(0, 500);
+    answer += preview + (mainResult.content.length > 500 ? '...' : '');
+    answer += `\n\n_Источник: \`${mainResult.path}\`_`;
+    return answer;
+  }
+
+  answer += `Нашёл информацию в **${results.length} файл(ах)**:\n\n`;
+
+  snippets.forEach((snippet, i) => {
+    answer += `**${snippet.source}**\n`;
+    answer += `> ${snippet.text}\n\n`;
+  });
+
+  if (results.length > 0) {
+    answer += `_Источники: ${results.map(r => '`' + r.path + '`').join(', ')}_`;
+  }
+
+  return answer;
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();  if (!text || isProcessing) return;
+
+  isProcessing = true;
+  input.value = '';
+
+  // Add user message
+  addMessage(text, 'user');
+  chatHistory.push({ role: 'user', content: text, time: new Date() });
+
+  // Show typing
+  const typingEl = showTyping();
+
+  // Simulate processing delay
+  await sleep(800 + Math.random() * 1200);
+
+  // Search & generate answer
+  const results = searchKnowledge(text);
+  const answer = generateAnswer(text, results);
+
+  // Remove typing
+  typingEl.remove();
+
+  // Add AI message
+  addMessage(answer, 'ai', results);
+  chatHistory.push({ role: 'ai', content: answer, time: new Date(), sources: results });
+
+  isProcessing = false;
+}
+
+function addMessage(text, role, sources = null) {
+  const welcome = document.getElementById('welcomeScreen');
+  if (welcome) welcome.remove();
+
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  const avatar = role === 'user' ? '👤' : '🤖';
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+  let formattedText = role === 'ai' ? formatMarkdown(text) : escapeHtml(text).replace(/\n/g, '<br>');
+
+  let sourcesHtml = '';
+  if (sources && sources.length > 0) {
+    sourcesHtml = `<div class="source-ref">📎 ${sources.map(s => s.name).join(', ')}</div>`;
+  }
+
+  div.innerHTML = `
+    <div class="message-avatar">${avatar}</div>
+    <div>      <div class="message-bubble">${formattedText}</div>
+      <div class="message-time">${time}</div>
+      ${sourcesHtml}
+    </div>
+  `;
+
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping() {
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message ai';
+  div.id = 'typingMsg';
+  div.innerHTML = `
+    <div class="message-avatar">🤖</div>
+    <div>
+      <div class="message-bubble">
+        <div class="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// ============================================================
+// CLEAR CHAT
+// ============================================================
+function showClearDialog() {
+  document.getElementById('confirmDialog').classList.remove('hidden');
+}
+
+function closeDialog() {
+  document.getElementById('confirmDialog').classList.add('hidden');
+}
+
+function confirmClear() {
+  closeDialog();
+  const container = document.getElementById('messages');
+  container.innerHTML = `
+    <div class="welcome" id="welcomeScreen">
+      <div class="welcome-icon">💬</div>
+      <h2>Чат очищен</h2>
+      <p>Задайте новый вопрос по вашим файлам. База знаний (${knowledgeBase.length} файлов) не была изменена.</p>
+    </div>  `;
+  chatHistory = [];
+  showToast('🗑️ Чат очищен');
+}
+
+// ============================================================
+// SIDEBAR TOGGLE
+// ============================================================
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none';
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function updateProgress(percent, text) {
+  document.getElementById('progressBar').style.width = percent + '%';
+  document.getElementById('loadingText').textContent = text;
+}
+
+function isExcluded(path) {
+  const ext = getExtension(path);
+  return EXCLUDED_EXTENSIONS.includes(ext);
+}
+
+function getExtension(path) {
+  const parts = path.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+function getFileIcon(ext) {
+  const icons = {
+    'pdf': '📕', 'txt': '📄', 'md': '📝', 'json': '📋', 'csv': '📊',
+    'py': '🐍', 'js': '📜', 'ts': '📘', 'jsx': '⚛️', 'tsx': '⚛️',
+    'css': '🎨', 'scss': '🎨', 'sass': '🎨', 'less': '🎨',
+    'java': '☕', 'kt': '☕', 'scala': '☕',
+    'go': '🔵', 'rs': '🦀', 'c': '⚙️', 'cpp': '⚙️', 'h': '⚙️', 'hpp': '⚙️',
+    'rb': '💎', 'php': '🐘', 'swift': '🍎', 'r': '📈',
+    'yml': '⚙️', 'yaml': '⚙️', 'xml': '📰', 'toml': '⚙️',
+    'sh': '💻', 'bash': '💻', 'zsh': '💻', 'bat': '💻', 'ps1': '💻',
+    'sql': '🗃️', 'graphql': '🔗',
+    'dockerfile': '🐳',
+    'log': '📋', 'env': '🔒', 'gitignore': '🚫',
+    'png': '🖼️', 'jpg': '🖼️', 'jpeg': '🖼️', 'gif': '🖼️', 'svg': '🖼️', 'webp': '🖼️',
+    'mp3': '🎵', 'wav': '🎵', 'mp4': '🎬', 'avi': '🎬',
+    'zip': '📦', 'tar': '📦', 'gz': '📦',
+  };
+  return icons[ext] || '📎';
+}
+function formatSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatMarkdown(text) {
+  // Convert **bold**, _italic_, `code`, etc.
+  let html = text;
+
+  // Code blocks
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+  // Italic
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Blockquote
+  html = html.replace(/^> (.+)$/gm, '<blockquote style="border-left:3px solid var(--accent);padding-left:10px;color:var(--text2);margin:4px 0;">$1</blockquote>');
+
+  // Line breaks
+  html = html.replace(/\n/g, '<br>');
+
+  return html;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+async function fetchWithRateLimit(url) {
+  try {
+    const resp = await fetch(url);
+    if (resp.status === 403) {
+      // Rate limit — wait and retry
+      const resetTime = resp.headers.get('X-RateLimit-Reset');
+      if (resetTime) {
+        const wait = Math.min((parseInt(resetTime) - Date.now() / 1000) * 1000, 5000);
+        await sleep(wait);
+        const resp2 = await fetch(url);
+        return resp2.json();
+      }
+    }
+    return resp.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+// Enter to send
+document.getElementById('chatInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+</script>
+</body>
+</html>
